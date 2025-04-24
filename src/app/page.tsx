@@ -2,246 +2,163 @@
 
 import { useState } from "react";
 
-interface Author {
-  name: string;
-  id: string;
-}
-
-interface Comment {
-  id: string;
-  message: string;
-  from?: {
-    name: string;
-    id: string;
-  };
-}
-
-interface CommentsResponse {
-  data: Comment[];
-  paging: {
-    cursors: {
-      before: string;
-      after: string;
-    };
-  };
-}
-
-interface Post {
-  id: string;
-  message?: string;
-  story?: string;
-  created_time: string;
-}
-
-interface PostsResponse {
-  data: Post[];
-  paging: {
-    cursors: {
-      before: string;
-      after: string;
-    };
-  };
-}
-
 export default function Home() {
-  const [comments, setComments] = useState<Comment[]>([]);
-  const [mclId, setMclId] = useState<string>("");
-  const [isLoading, setIsLoading] = useState<boolean>(false);
+  const [profileData, setProfileData] = useState<
+    { name: string; id: string }[] | null
+  >(null);
+  const [pageFeed, setPageFeed] = useState<
+    | { created_time: string; story?: string; message?: string; id: string }[]
+    | null
+  >(null);
+  const [commentsByPost, setCommentsByPost] = useState<Record<string, any[]>>(
+    {}
+  );
   const [error, setError] = useState<string | null>(null);
+  const [loading, setLoading] = useState(false);
+  const [expandedComments, setExpandedComments] = useState<
+    Record<string, boolean>
+  >({});
 
-  // New state for posts feature
-  const [posts, setPosts] = useState<Post[]>([]);
-  const [pageId, setPageId] = useState<string>("");
-  const [isLoadingPosts, setIsLoadingPosts] = useState<boolean>(false);
-  const [postsError, setPostsError] = useState<string | null>(null);
-
-  const fetchComments = async () => {
-    if (!mclId) {
-      alert("Please enter a valid MCL ID");
-      return;
-    }
-
-    setIsLoading(true);
-    setError(null);
-
-    try {
-      const response = await fetch(`/api/facebook-comments?mclId=${mclId}`);
-      const data: CommentsResponse = await response.json();
-
-      if (response.ok) {
-        setComments(data.data || []);
-      } else {
-        setError(data.error || "Failed to fetch comments");
-        alert(data.error || "Failed to fetch comments");
-      }
-    } catch (error) {
-      console.error("Error fetching comments:", error);
-      setError("An unexpected error occurred");
-    } finally {
-      setIsLoading(false);
-    }
+  const toggleComments = (postId: string) => {
+    setExpandedComments((prev) => ({
+      ...prev,
+      [postId]: !prev[postId],
+    }));
   };
 
-  // New function to fetch posts
-  const fetchPosts = async () => {
-    if (!pageId) {
-      alert("Please enter a valid Page ID");
-      return;
-    }
-
-    setIsLoadingPosts(true);
-    setPostsError(null);
-
+  const fetchProfileInfo = async () => {
     try {
-      const response = await fetch(`/api/facebook-posts?pageId=${pageId}`);
-      const data: PostsResponse = await response.json();
+      setLoading(true);
+      const response = await fetch("/api/facebook-comments");
+      const data = await response.json();
 
-      if (response.ok) {
-        setPosts(data.data || []);
-      } else {
-        setPostsError(data.error || "Failed to fetch posts");
-        alert(data.error || "Failed to fetch posts");
+      if (!response.ok) {
+        setError(data.error || "Failed to fetch profile information");
+        return;
       }
+
+      setProfileData(data.profileInfo?.data || []);
+      setPageFeed(data.pageFeed?.data || []);
+      setCommentsByPost(data.commentsByPost || {});
+      setError(null);
     } catch (error) {
-      console.error("Error fetching posts:", error);
-      setPostsError("An unexpected error occurred");
+      console.error("Error fetching profile information:", error);
+      setError("An error occurred while fetching profile information");
     } finally {
-      setIsLoadingPosts(false);
+      setLoading(false);
     }
   };
 
   return (
-    <div style={{ padding: "20px", maxWidth: "800px", margin: "0 auto" }}>
-      <h1>Facebook Comments Fetcher</h1>
+    <main className="max-w-4xl mx-auto p-6 font-sans">
+      <h1 className="text-3xl font-bold text-center text-blue-600 mb-6">
+        Facebook Page Feed & Comments Viewer
+      </h1>
 
-      {/* Comments Section */}
-      <div style={{ marginBottom: "30px" }}>
-        <h2>Fetch Comments</h2>
-        <div style={{ marginBottom: "20px" }}>
-          <input
-            type="text"
-            placeholder="Enter MCL ID"
-            value={mclId}
-            onChange={(e) => setMclId(e.target.value)}
-            style={{ padding: "8px", marginRight: "10px", width: "300px" }}
-          />
-          <button
-            onClick={fetchComments}
-            disabled={isLoading}
-            style={{
-              padding: "8px 16px",
-              backgroundColor: "#1877F2",
-              color: "white",
-              border: "none",
-              borderRadius: "4px",
-              cursor: isLoading ? "not-allowed" : "pointer",
-            }}
-          >
-            {isLoading ? "Loading..." : "Fetch Comments"}
-          </button>
-        </div>
-
-        {error && <p style={{ color: "red" }}>{error}</p>}
-
-        {comments.length > 0 && (
-          <div>
-            <h3>Comments ({comments.length})</h3>
-            <div style={{ marginTop: "20px" }}>
-              {comments.map((comment) => (
-                <div
-                  key={comment.id}
-                  style={{
-                    marginBottom: "15px",
-                    padding: "15px",
-                    backgroundColor: "#f0f2f5",
-                    borderRadius: "8px",
-                    color: "black",
-                  }}
-                >
-                  {comment.from && (
-                    <div style={{ fontWeight: "bold", marginBottom: "5px" }}>
-                      {comment.from.name}
-                    </div>
-                  )}
-                  <div>{comment.message}</div>
-                </div>
-              ))}
-            </div>
-          </div>
-        )}
+      <div className="flex justify-center mb-4">
+        <button
+          onClick={fetchProfileInfo}
+          className="bg-blue-600 hover:bg-blue-700 text-white font-semibold py-2 px-6 rounded-lg transition"
+        >
+          {loading ? "Loading..." : "Fetch Profile Info"}
+        </button>
       </div>
 
-      {/* Posts Section - New Feature */}
-      <div
-        style={{
-          marginTop: "40px",
-          borderTop: "1px solid #ddd",
-          paddingTop: "20px",
-        }}
-      >
-        <h2>Fetch Posts</h2>
-        <div style={{ marginBottom: "20px" }}>
-          <input
-            type="text"
-            placeholder="Enter Page ID"
-            value={pageId}
-            onChange={(e) => setPageId(e.target.value)}
-            style={{ padding: "8px", marginRight: "10px", width: "300px" }}
-          />
-          <button
-            onClick={fetchPosts}
-            disabled={isLoadingPosts}
-            style={{
-              padding: "8px 16px",
-              backgroundColor: "#4267B2",
-              color: "white",
-              border: "none",
-              borderRadius: "4px",
-              cursor: isLoadingPosts ? "not-allowed" : "pointer",
-            }}
-          >
-            {isLoadingPosts ? "Loading..." : "Fetch Posts"}
-          </button>
-        </div>
+      {error && (
+        <p className="text-red-500 text-center font-semibold">{error}</p>
+      )}
 
-        {postsError && <p style={{ color: "red" }}>{postsError}</p>}
+      {profileData && (
+        <section className="bg-gray-100 p-4 rounded-lg mb-6">
+          <h2 className="text-xl font-semibold mb-2 border-b pb-1 text-black">
+            Profile Info
+          </h2>
+          <ul>
+            {profileData.map((profile) => (
+              <li key={profile.id} className="py-2 border-b text-black">
+                <strong>Name:</strong> {profile.name} <br />
+                <strong>ID:</strong> {profile.id}
+              </li>
+            ))}
+          </ul>
+        </section>
+      )}
 
-        {posts.length > 0 && (
-          <div>
-            <h3>Posts ({posts.length})</h3>
-            <div style={{ marginTop: "20px" }}>
-              {posts.map((post) => (
-                <div
-                  key={post.id}
-                  style={{
-                    marginBottom: "15px",
-                    padding: "15px",
-                    backgroundColor: "#e7f3ff",
-                    borderRadius: "8px",
-                    color: "black",
-                  }}
+      {pageFeed && (
+        <section>
+          <h2 className="text-xl font-semibold mb-4 border-b pb-1">
+            Page Feed
+          </h2>
+          <div className="grid gap-6">
+            {pageFeed.map((feed) => (
+              <div
+                key={feed.id}
+                className="bg-white shadow-sm p-4 rounded-lg border text-black"
+              >
+                <p className="text-sm text-gray-500 mb-2">
+                  <strong>Created:</strong>{" "}
+                  {new Date(feed.created_time).toLocaleString()}
+                </p>
+                {feed.story && (
+                  <p>
+                    <strong>Story:</strong> {feed.story}
+                  </p>
+                )}
+                {feed.message && (
+                  <p>
+                    <strong>Message:</strong> {feed.message}
+                  </p>
+                )}
+                <p className="text-sm text-gray-400 mt-2">
+                  <strong>Post ID:</strong> {feed.id}
+                </p>
+
+                <button
+                  onClick={() => toggleComments(feed.id)}
+                  className="text-sm text-blue-600 mt-4 underline"
                 >
-                  <div
-                    style={{
-                      fontSize: "12px",
-                      color: "#666",
-                      marginBottom: "5px",
-                    }}
-                  >
-                    Post ID: {post.id}
+                  {expandedComments[feed.id]
+                    ? "Hide Comments"
+                    : "Show Comments"}
+                </button>
+
+                {expandedComments[feed.id] && (
+                  <div className="mt-3 border-t pt-2">
+                    <h4 className="text-md font-semibold mb-2 text-gray-600">
+                      Comments:
+                    </h4>
+                    {commentsByPost[feed.id] &&
+                    commentsByPost[feed.id].length > 0 ? (
+                      <ul>
+                        {commentsByPost[feed.id].map((comment) => (
+                          <li
+                            key={comment.id}
+                            className="border-b py-2 text-sm"
+                          >
+                            <p>
+                              <strong>From:</strong>{" "}
+                              {comment.from?.name || "Unknown"}
+                            </p>
+                            <p>
+                              <strong>Message:</strong> {comment.message}
+                            </p>
+                            <p>
+                              <strong>Time:</strong>{" "}
+                              {new Date(comment.created_time).toLocaleString()}
+                            </p>
+                          </li>
+                        ))}
+                      </ul>
+                    ) : (
+                      <p className="italic text-gray-500">No comments</p>
+                    )}
                   </div>
-                  <div style={{ marginBottom: "8px" }}>
-                    {new Date(post.created_time).toLocaleString()}
-                  </div>
-                  <div style={{ fontSize: "16px" }}>
-                    {post.message || post.story || "No content"}
-                  </div>
-                </div>
-              ))}
-            </div>
+                )}
+              </div>
+            ))}
           </div>
-        )}
-      </div>
-    </div>
+        </section>
+      )}
+    </main>
   );
 }
