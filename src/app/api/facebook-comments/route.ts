@@ -4,7 +4,7 @@ export async function GET(request: Request) {
   const { searchParams } = new URL(request.url);
   const mclId = searchParams.get("mclId");
   const accessToken =
-    "EAAViWwHTZB0QBO4sIE3ZBdIm8n7Jjz2pUZCEFYMAWg0mliP6z0N4G5xkCKIlDgyCq4zSlmYBVK7kStZAVZAK1fsjxDb0NWAcVKP5vG9ZBoA7RJN2Q3BiLiR1U2IuPUfC6sIzBRHzsbEYaWs8VrGzW5aFDpekxLZAjQZCE4bzQHwkvbOjWW4oKJSTvVI9rxDCUexEJboelNyYogEr6GBa3LqcjOaA2pMTKJk6";
+    "EAAViWwHTZB0QBO3ikAJvS3YOOLkm4Dxkoy9ac280PuFE2Ig0vT3rBinTtvymHZBxJGCGkHGpHa6sXl83qT7o5UTO79opFYKrCjSvk5bS7nolDxOmKAGZCOSxMWP3c51zeZCFGZBojQQi6aWcZCjRn88W6Y7mgnZAkdQjkftTLizqZCqsq1acEjf08ZCZAC4NKiw41egCUc3VRT3BD5jvkUaM1FZBSS5U5C8eZCatSQZDZD";
   console.log("Access Token:", accessToken);
 
   if (!mclId) {
@@ -12,10 +12,7 @@ export async function GET(request: Request) {
   }
 
   if (!accessToken) {
-    return NextResponse.json(
-      { error: "Access token is missing" },
-      { status: 401 }
-    );
+    return NextResponse.json({ status: 401 });
   }
 
   const apiUrl = `https://graph.facebook.com/v22.0/${mclId}/comments?fields=from,message`;
@@ -36,6 +33,7 @@ export async function GET(request: Request) {
     }
 
     const data = await response.json();
+    console.log("API response data:", data);
     return NextResponse.json(data);
   } catch (error) {
     console.error("Error making API request:", error);
