@@ -1,8 +1,9 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 
 export default function Home() {
+  const [profilePicture, setProfilePicture] = useState<string | null>(null);
   const [profileData, setProfileData] = useState<
     { name: string; id: string }[] | null
   >(null);
@@ -13,6 +14,9 @@ export default function Home() {
   const [commentsByPost, setCommentsByPost] = useState<Record<string, any[]>>(
     {}
   );
+  const [pageTags, setPageTags] = useState<
+    { id: string; message: string; tagged_time: string }[] | null
+  >(null); // <-- New state
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [expandedComments, setExpandedComments] = useState<
@@ -32,6 +36,8 @@ export default function Home() {
       const response = await fetch("/api/facebook-comments");
       const data = await response.json();
 
+      console.log("Profile Info:", data);
+
       if (!response.ok) {
         setError(data.error || "Failed to fetch profile information");
         return;
@@ -40,6 +46,8 @@ export default function Home() {
       setProfileData(data.profileInfo?.data || []);
       setPageFeed(data.pageFeed?.data || []);
       setCommentsByPost(data.commentsByPost || {});
+      setProfilePicture(data.pageProfilePicture || null);
+      setPageTags(data.pageTags?.data || []); // <-- Save page tags here
       setError(null);
     } catch (error) {
       console.error("Error fetching profile information:", error);
@@ -48,6 +56,10 @@ export default function Home() {
       setLoading(false);
     }
   };
+
+  useEffect(() => {
+    fetchProfileInfo();
+  }, []);
 
   return (
     <main className="max-w-4xl mx-auto p-6 font-sans">
@@ -75,9 +87,21 @@ export default function Home() {
           </h2>
           <ul>
             {profileData.map((profile) => (
-              <li key={profile.id} className="py-2 border-b text-black">
-                <strong>Name:</strong> {profile.name} <br />
-                <strong>ID:</strong> {profile.id}
+              <li
+                key={profile.id}
+                className="py-2 border-b text-black flex items-center space-x-4"
+              >
+                {profilePicture && (
+                  <img
+                    src={profilePicture}
+                    alt="Profile"
+                    className="w-12 h-12 rounded-full object-cover border"
+                  />
+                )}
+                <div>
+                  <strong>Name:</strong> {profile.name} <br />
+                  <strong>ID:</strong> {profile.id}
+                </div>
               </li>
             ))}
           </ul>
@@ -85,7 +109,7 @@ export default function Home() {
       )}
 
       {pageFeed && (
-        <section>
+        <section className="mb-6">
           <h2 className="text-xl font-semibold mb-4 border-b pb-1">
             Page Feed
           </h2>
@@ -157,6 +181,38 @@ export default function Home() {
               </div>
             ))}
           </div>
+        </section>
+      )}
+
+      {/* === New Page Tags Section === */}
+      {pageTags && (
+        <section className="bg-gray-100 p-4 rounded-lg mb-6">
+          <h2 className="text-xl font-semibold mb-2 border-b pb-1 text-black">
+            Page Tags
+          </h2>
+          {pageTags.length > 0 ? (
+            <ul className="space-y-4">
+              {pageTags.map((tag) => (
+                <li
+                  key={tag.id}
+                  className="bg-white shadow-sm p-4 rounded-lg border text-black"
+                >
+                  <p className="text-sm text-gray-500 mb-2">
+                    <strong>Tagged Time:</strong>{" "}
+                    {new Date(tag.tagged_time).toLocaleString()}
+                  </p>
+                  <p>
+                    <strong>Message:</strong> {tag.message}
+                  </p>
+                  <p className="text-sm text-gray-400 mt-2">
+                    <strong>Tag ID:</strong> {tag.id}
+                  </p>
+                </li>
+              ))}
+            </ul>
+          ) : (
+            <p className="italic text-gray-500">No tags found.</p>
+          )}
         </section>
       )}
     </main>

@@ -1,10 +1,10 @@
 import { NextResponse } from "next/server";
 
 const PAGE_ACCESS_TOKEN =
-  "EAAViWwHTZB0QBOwpRt7cFYAm0saZAvPn1BclyaYOshj6kHcrxpN1LkU6ervZCcPvifZBX5BE0GOBf1QB8VvGCR4riMlKXmyy6lx6F8HotCyeH2ZB6wI8Aku1FP753EgyZCZCeiIZAa0ZA9hiaCsy2a1XmyMuDACECOxRUUrop3ztBBK9Tlat0lfHAEZCjWGiMhZA5dCdGt8W1oit7Vihkkme6bFtds3bqkDuIJO";
+  "EAAViWwHTZB0QBO38iS6ZCbXCoJb83wvb7lwsDZCL4UeYaJULHczrhcfpacogaXdZCv9uBpfxpFU9RMidWHx6UK2OXrFNAJCFPeaoKfsCbib168TAHZB9JBTZBMvEWjR33sxsZA6pnQaZBhZBcmGNGZAim6adhwN7ZAqrmZCY9zNV3cJhSnq96g8xbbdZCzcGb9PRjWnby3LoIvlEQIs1Jla5kmKu3ZAAlqRbhOvvxvNAZDZD";
 
 const ACCESS_TOKEN =
-  "EAAViWwHTZB0QBOx1XS3xraVRumEtinTikOjOWa945lnZB4eeGzIUZACTJT89kWArO3KxwgywS7LMNoWZAJ6JpcskJXw2uVA2NV68ZCFUj9leLtP8mZAjbLfJVl5FdEuVRyY5F9ogTNEftSQVZAbOR8dq14PI2XUJhZAuTKZANXrprSXTPK6MX1rStlmaaGAOnIZBEYCin76PV9UolkdACA1r9lzvnOc4y1JqIUh04ZD";
+  "EAAViWwHTZB0QBOZBI45nvAItBdC2BDFR42bECUU6h16QhIuc5qcIsBxCSvZATcbmGP9kjtnXZAby9WOmOpdNfN0xRHOvCIkOFvxBSdFNIggW3tIbqAdJtOJb0QNvaWP2R8hwJQGNsJt5nVLWvpysMJ7iB9jgjngWIfAKHarGMpVoyxvIKe5QXPPMsnczvKU1cnDQoPeFHywSTGbZBqHZBPrLdD5HfAocCcj61r";
 
 // Fetch profile information
 async function fetchProfileInfo() {
@@ -24,6 +24,21 @@ async function fetchProfileInfo() {
   console.log("Fetched Profile Data:", profileData);
 
   return profileData;
+}
+
+async function fetchPageProfilePicture(pageId: string) {
+  const url = `https://graph.facebook.com/v22.0/${pageId}/picture?redirect=0&width=200&height=200&access_token=${PAGE_ACCESS_TOKEN}`;
+  console.log("Fetching profile picture from:", url);
+
+  const response = await fetch(url);
+  if (!response.ok) {
+    console.error(`Failed to fetch profile picture for page ${pageId}`);
+    throw new Error(`Failed to fetch profile picture for page ${pageId}`);
+  }
+
+  const data = await response.json();
+  console.log("Fetched profile picture data:", data);
+  return data;
 }
 
 // Fetch feed for a specific page
@@ -67,41 +82,51 @@ async function fetchAllComments(postId: string) {
   return allComments;
 }
 
+async function fetchPageTags(pageId: string) {
+  const url = `https://graph.facebook.com/v22.0/${pageId}/tagged?access_token=${PAGE_ACCESS_TOKEN}`;
+  console.log("Fetching page tags from:", url);
+
+  const response = await fetch(url, { method: "GET" });
+  if (!response.ok) {
+    console.error(`Failed to fetch tags for page ${pageId}`);
+    throw new Error(`Failed to fetch tags for page ${pageId}`);
+  }
+
+  const data = await response.json();
+  console.log("Fetched page tags data:", data);
+  return data;
+}
+
 // Main route handler
 export async function GET(request: Request) {
   console.log("Received GET request...");
   try {
-    console.log("Fetching profile information...");
     const profileInfo = await fetchProfileInfo();
-    console.log("Profile information fetched successfully:", profileInfo);
-
     const firstPageId = profileInfo.data?.[0]?.id;
-    console.log("Extracted first page ID:", firstPageId);
 
     if (!firstPageId) {
-      console.error("No page ID found in profile information");
       throw new Error("No page ID found in profile information");
     }
 
-    console.log("Fetching feed for the first page...");
     const pageFeed = await fetchPageFeed(firstPageId);
-    console.log("Page feed fetched successfully");
+    const pageProfilePic = await fetchPageProfilePicture(firstPageId);
+    const pageTags = await fetchPageTags(firstPageId); // Fetch page tags
 
     const posts = pageFeed.data || [];
     const postComments: Record<string, any[]> = {};
 
     for (const post of posts) {
       const fullPostId = post.id;
-      console.log(`Fetching comments for post ID: ${fullPostId}`);
       const comments = await fetchAllComments(fullPostId);
       postComments[fullPostId] = comments;
     }
 
-    console.log("Returning combined response...");
     return NextResponse.json({
       profileInfo,
       pageFeed,
       commentsByPost: postComments,
+      pageProfilePicture: pageProfilePic.data?.url || null,
+      pageTags,
     });
   } catch (error: any) {
     console.error("Error occurred:", error.message);
