@@ -47,13 +47,13 @@ export default function Home() {
       setPageFeed(data.pageFeed?.data || []);
       setCommentsByPost(data.commentsByPost || {});
       setProfilePicture(data.pageProfilePicture || null);
-      setPageTags(data.pageTags?.data || []); // <-- Save page tags here
+      setPageTags(data.pageTags?.data || []);
       setError(null);
     } catch (error) {
       console.error("Error fetching profile information:", error);
       setError("An error occurred while fetching profile information");
     } finally {
-      setLoading(false); // Ensure loading state is reset in all cases
+      setLoading(false);
     }
   };
 
