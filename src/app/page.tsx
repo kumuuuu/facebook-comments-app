@@ -31,8 +31,8 @@ export default function Home() {
   };
 
   const fetchProfileInfo = async () => {
+    setLoading(true); // Ensure loading state is set at the start
     try {
-      setLoading(true);
       const response = await fetch("/api/facebook-comments");
       const data = await response.json();
 
@@ -53,7 +53,7 @@ export default function Home() {
       console.error("Error fetching profile information:", error);
       setError("An error occurred while fetching profile information");
     } finally {
-      setLoading(false);
+      setLoading(false); // Ensure loading state is reset in all cases
     }
   };
 
