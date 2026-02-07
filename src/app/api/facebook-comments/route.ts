@@ -1,10 +1,8 @@
 import { NextResponse } from "next/server";
 
-const PAGE_ACCESS_TOKEN =
-  "EAAViWwHTZB0QBO23MoWiiqklOyTZBSKbjgMEqUCmoQqUvFRUvkQ7OGYzymY3Got98BioUApxCoCOsyhJxNa8EnhWR89GWwSYHiS3uqLS0j81UzOYJuzWDZCh6Wee9ZC9Tkg6wXYUsxESEdCP8xeEdCZAmo1cw6V9PVWwYSi8PyS6Oa5DCSgTX66bZCHH4AI0ZAVP5RNsB4ZAdCYPnnNwSAM5rte4FlgIhn9t";
+const PAGE_ACCESS_TOKEN = process.env.FACEBOOK_PAGE_ACCESS_TOKEN;
 
-const ACCESS_TOKEN =
-  "EAAViWwHTZB0QBOZCq8ZA8UtItnJAklCKPVQ1FZBW8Ef15IXZAr7xFj18Vn7ftsptTTdIKKK3WXCGUBSWhjcqP2EUGkaLa6THptJbZAU3ImR65iP4wiZA8BqHQvMzKPw6gqZCY28ZBNYk5fcoSy5YGeWtsq70fEpFHoLqazeto6pvZCobSZB1puuvDuP8XBVCEGCoKZA4zY8wsUDzW0nRUjVXdrsyUbt8aQZDZD";
+const ACCESS_TOKEN = process.env.FACEBOOK_ACCESS_TOKEN;
 
 // Fetch profile information
 async function fetchProfileInfo() {
@@ -101,6 +99,28 @@ async function fetchPageTags(pageId: string) {
 export async function GET(request: Request) {
   console.log("Received GET request...");
   try {
+    const isTokenMissingOrEmpty = (value?: string) =>
+      !value || value.trim() === "";
+    const missingTokens = [
+      isTokenMissingOrEmpty(ACCESS_TOKEN) ? "FACEBOOK_ACCESS_TOKEN" : null,
+      isTokenMissingOrEmpty(PAGE_ACCESS_TOKEN)
+        ? "FACEBOOK_PAGE_ACCESS_TOKEN"
+        : null,
+    ].filter((token): token is string => Boolean(token));
+
+    if (missingTokens.length > 0) {
+      console.error(
+        `Missing Facebook Graph API access tokens: ${missingTokens.join(", ")}.`
+      );
+      return NextResponse.json(
+        {
+          error:
+            "Required Facebook API tokens are not configured. Check your environment variables.",
+        },
+        { status: 500 }
+      );
+    }
+
     const profileInfo = await fetchProfileInfo();
     const firstPageId = profileInfo.data?.[0]?.id;
 

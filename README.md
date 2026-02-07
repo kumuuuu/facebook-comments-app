@@ -42,7 +42,11 @@ Facebook Page managers need a simple way to view page metadata, recent posts, an
    ```bash
    npm install
    ```
-2. Update the access tokens in `src/app/api/facebook-comments/route.ts` with valid Facebook Graph API tokens.
+2. Create a `.env.local` file with valid Facebook Graph API tokens:
+   ```bash
+   FACEBOOK_ACCESS_TOKEN=your_user_access_token
+   FACEBOOK_PAGE_ACCESS_TOKEN=your_page_access_token
+   ```
 3. Start the development server:
    ```bash
    npm run dev
